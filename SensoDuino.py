@@ -1,30 +1,10 @@
 import circuits
-import circuits.io.serial
-import circuits.io.file
-from circuits import Component, Event
+from circuits.io import File, Serial
+from circuits import Component, Event, Debugger, handler
 
 class SensoDuino(Component):
-	CHANNEL_ALL = "all"
-	CHANNEL_ACCELEROMETER = "accel"
-	CHANNEL_MAGNETIC_FIELD = "mag_field"
-	CHANNEL_ORIENTATION = "orient"
-	CHANNEL_GYROSCOPE = "gyro"
-	CHANNEL_LIGHT = "light"
-	CHANNEL_PRESSURE = "pressure"
-	CHANNEL_DEVICE_TEMPERATURE = "device_temp"
-	CHANNEL_PROXIMITY = "prox"
-	CHANNEL_GRAVITY = "grav"
-	CHANNEL_LINEAR_ACCELERATION = "linear_accel"
-	CHANNEL_ROTATION_VECTOR = "rot_vector"
-	CHANNEL_RELATIVE_HUMIDITY = "rel_hum"
-	CHANNEL_AMBIENT_TEMPERATURE = "amb_temp"
-	CHANNEL_MAGNETIC_FIELD_UNCALIBRATED = "mag_field_uncal"
-	CHANNEL_GAME_ROTATION_VECTOR = "game_rot_vector"
-	CHANNEL_GYROSCOPE_UNCALIBRATED = "gyro_uncal"
-	CHANNEL_SIGNIFICANT_MOTION = "sig_mot"
-	CHANNEL_AUDIO = "audio"
-	CHANNEL_GPS1 = "gps1"
-	CHANNEL_GPS2 = "gps2"
+
+	channel = "sensors"
 
 	ID_ACCELEROMETER = "1"
 	ID_MAGNETIC_FIELD = "2"
@@ -47,18 +27,55 @@ class SensoDuino(Component):
 	ID_GPS1 = "98"
 	ID_GPS2 = "99"
 
-
-	def __init__ (self, source, isFile = FALSE):
+	def __init__ (self, source, isFile = False):
 		super(SensoDuino, self).__init__()
-		
-	@handler("started	")
-	def _on_start
+		if isFile:
+			self += File(source, channel=self.channel)
+		else:
+			self += Serial(source, channel=self.channel)
 
-	@handler("read")
-	def on_read(self, data):
+	def read(self, data):
+		self.parse_data(data)
+
+	def parse_data(self, csv_data):
+		data = tuple(csv_data.strip('>\n').split(','))
+		type_id = data[0]
+
+		if type_id == self.ID_ACCELEROMETER:
+			self.update_accelerometer(*data[2:5])
+		elif type_id == self.ID_ORIENTATION:
+			self.update_orientation(*data[2:5])
+		elif type_id == self.ID_ROTATION_VECTOR:
+			self.update_rotation_vector(*data[2:5])
+		elif type_id == self.ID_MAGNETIC_FIELD:
+			self.update_magnetic_field(*data[2:5])
+		elif type_id == self.ID_GPS1:
+			self.update_gps1(*data[2:5])
+		elif type_id == self.ID_GPS2:
+			self.update_gps2(*data[2:5])
+
+	def update_accelerometer(self, x, y, z):
+		self.fire(AccelerometerDataEvent((x, y, z)))#.notify = True
 		return
 
-	def parse_data(self, data):
+	def update_orientation(self, yaw, pitch, roll):
+		self.fire(OrientationDataEvent()).notify = True
+		return
+
+	def update_rotation_vector(self, x, y, z):
+		self.fire(RotationVectorDataEvent()).notify = True
+		return
+
+	def update_magnetic_field(self, x, y, z):
+		self.fire(MagneticFieldDataEvent()).notify = True
+		return
+
+	def update_gps1(self, latitude, longitude, altitude):
+		self.fire(GPSDataEvent()).notify = True
+		return
+
+	def update_gps2(self, bearing, speed, datetime):
+		self.fire(GPSDataEvent()).notify = True
 		return
 
 
@@ -66,7 +83,7 @@ class SensoDuino(Component):
 class SensorData(Event):
 	"""SensorDataEvent"""
 
-class AccelerometerDataEvent(SensorData)
+class AccelerometerDataEvent(SensorData):
 	"""AccelerometerDataEvent"""
 
 class OrientationDataEvent(SensorData):
@@ -80,3 +97,9 @@ class RotationVectorDataEvent(SensorData):
 
 class MagneticFieldDataEvent(SensorData):
 	"""MagneticFieldDataEvent"""
+
+def main():
+	(SensoDuino("/dev/cu.GalaxyNexus-SensoDuinoB") + Debugger()).run()
+
+if __name__ == '__main__':
+	main()
