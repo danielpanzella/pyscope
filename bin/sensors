@@ -1,0 +1,10 @@
+#!/usr/local/bin/python
+import sys, os
+sys.path.append(os.path.abspath('..'))
+import pyscope.sensors.sensoduino
+
+def main():
+	return pyscope.sensors.sensoduino.main()
+
+if __name__ == '__main__':
+    sys.exit(main())

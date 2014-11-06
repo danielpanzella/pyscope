@@ -1,0 +1,9 @@
+#!/usr/local/bin/python
+import sys, os
+from pyscope import pyscope
+
+def main():
+	return pyscope.main()
+
+if __name__ == '__main__':
+    sys.exit(main())

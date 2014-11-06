@@ -1,2 +1,5 @@
 pyserial
 circuits
+pytz
+pyrr
+astrolib.coords
